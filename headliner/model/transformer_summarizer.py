@@ -171,12 +171,12 @@ class TransformerSummarizer(Summarizer):
 #             pred_token_index = tf.cast(tf.argmax(predictions, axis=-1), tf.int32)
             ## MINE ###
             pred_logits = np.squeeze(predictions.numpy()).copy()
-            predictions = _softmax(np.squeeze(predictions.numpy()))
+            predictions = self._softmax(np.squeeze(predictions.numpy()))
             pred_token_index = np.random.choice(
                 np.argsort(predictions)[::-1],
                 size=1,
                 replace=False,
-                p=softmax(predictions[np.argsort(predictions)[::-1]])
+                p=self._softmax(predictions[np.argsort(predictions)[::-1]])
                 )[0]
             pred_token_index = tf.cast([[pred_token_index]], tf.int32)
 #             pred_token_index = tf.cast([[0]], tf.int32)
