@@ -141,7 +141,7 @@ class TransformerSummarizer(Summarizer):
     def predict_from_distribution(self, text: str) -> str:
         return self.predict_vectors_from_distribution(text, '')['predicted_text']
     
-    def _softmax(self, x: np.array):
+    def softmax(self, x: np.array) -> np.array:
         return np.exp(x) / np.sum(np.exp(x))
     
     def predict_vectors_from_distribution(self, input_text: str, target_text: str) -> Dict[str, Union[str, np.array]]:
@@ -170,12 +170,12 @@ class TransformerSummarizer(Summarizer):
 #             pred_token_index = tf.cast(tf.argmax(predictions, axis=-1), tf.int32)
             ## MINE ###
             pred_logits = np.squeeze(predictions.numpy()).copy()
-            predictions = self._softmax(np.squeeze(predictions.numpy()))
+            predictions = self.softmax(np.squeeze(predictions.numpy()))
             pred_token_index = np.random.choice(
                 np.argsort(predictions)[::-1],
                 size=1,
                 replace=False,
-                p=self._softmax(predictions[np.argsort(predictions)[::-1]])
+                p=self.softmax(predictions[np.argsort(predictions)[::-1]])
                 )[0]
             pred_token_index = tf.cast([[pred_token_index]], tf.int32)
 #             pred_token_index = tf.cast([[0]], tf.int32)
