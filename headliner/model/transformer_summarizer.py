@@ -168,17 +168,17 @@ class TransformerSummarizer(Summarizer):
                                                               dec_padding_mask)
 
             predictions = predictions[:, -1:, :]
-            # pred_token_index = tf.cast(tf.argmax(predictions, axis=-1), tf.int32)
-            ### MINE ###
-            # predictions = _softmax(predictions.numpy())
-            # pred_token_index = np.random.choice(
-            #     np.argsort(predictions)[::-1],
-            #     size=1,
-            #     replace=False,
-            #     p=softmax(predictions[np.argsort(predictions)[::-1]])
-            #     )[0]
-            # pred_token_index = tf.cast(tf.Tensor(pred_token_index), tf.int32)
-            pred_token_index = tf.cast([[0]], tf.int32)
+            pred_token_index = tf.cast(tf.argmax(predictions, axis=-1), tf.int32)
+            ## MINE ###
+            predictions = _softmax(predictions.numpy())
+            pred_token_index = np.random.choice(
+                np.argsort(predictions)[::-1],
+                size=1,
+                replace=False,
+                p=softmax(predictions[np.argsort(predictions)[::-1]])
+                )[0]
+            pred_token_index = tf.cast([[pred_token_index]], tf.int32)
+#             pred_token_index = tf.cast([[0]], tf.int32)
             ### MINE ###
             decoder_output = tf.concat([decoder_output, pred_token_index], axis=-1)
             if pred_token_index != 0:
