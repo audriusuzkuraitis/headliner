@@ -140,9 +140,6 @@ class TransformerSummarizer(Summarizer):
     
     def predict_from_distribution(self, text: str) -> str:
         return self.predict_vectors_from_distribution(text, '')['predicted_text']
-    
-    def _softmax(x):
-        return np.exp(x) / np.sum(np.exp(x))
         
     def predict_vectors_from_distribution(self, input_text: str, target_text: str) -> Dict[str, Union[str, np.array]]:
         text_preprocessed = self.preprocessor((input_text, target_text))
@@ -157,6 +154,9 @@ class TransformerSummarizer(Summarizer):
                   'attention_weights': [],
                   'predicted_sequence': []}
 
+        def _softmax(x):
+            return np.exp(x) / np.sum(np.exp(x))
+        
         for _ in range(self.max_prediction_len):
             enc_padding_mask, combined_mask, dec_padding_mask = create_masks(
                 en_inputs, decoder_output)
@@ -166,17 +166,16 @@ class TransformerSummarizer(Summarizer):
                                                               enc_padding_mask,
                                                               combined_mask,
                                                               dec_padding_mask)
-
             predictions = predictions[:, -1:, :]
 #             pred_token_index = tf.cast(tf.argmax(predictions, axis=-1), tf.int32)
             ## MINE ###
             pred_logits = np.squeeze(predictions.numpy()).copy()
-            predictions = self._softmax(np.squeeze(predictions.numpy()))
+            predictions = _softmax(np.squeeze(predictions.numpy()))
             pred_token_index = np.random.choice(
                 np.argsort(predictions)[::-1],
                 size=1,
                 replace=False,
-                p=self._softmax(predictions[np.argsort(predictions)[::-1]])
+                p=_softmax(predictions[np.argsort(predictions)[::-1]])
                 )[0]
             pred_token_index = tf.cast([[pred_token_index]], tf.int32)
 #             pred_token_index = tf.cast([[0]], tf.int32)
