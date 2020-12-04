@@ -168,9 +168,10 @@ class TransformerSummarizer(Summarizer):
                                                               dec_padding_mask)
 
             predictions = predictions[:, -1:, :]
-            pred_token_index = tf.cast(tf.argmax(predictions, axis=-1), tf.int32)
+#             pred_token_index = tf.cast(tf.argmax(predictions, axis=-1), tf.int32)
             ## MINE ###
-            predictions = _softmax(predictions.numpy())
+            pred_logits = predictions.copy()
+            predictions = _softmax(np.squeeze(predictions.numpy()))
             pred_token_index = np.random.choice(
                 np.argsort(predictions)[::-1],
                 size=1,
@@ -182,7 +183,7 @@ class TransformerSummarizer(Summarizer):
             ### MINE ###
             decoder_output = tf.concat([decoder_output, pred_token_index], axis=-1)
             if pred_token_index != 0:
-                output['logits'].append(np.squeeze(predictions.numpy()))
+                output['logits'].append(pred_logits)
                 output['attention_weights'] = attention_weights
                 output['predicted_sequence'].append(int(pred_token_index))
                 if pred_token_index == de_end_index:
