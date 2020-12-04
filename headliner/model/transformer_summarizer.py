@@ -137,7 +137,59 @@ class TransformerSummarizer(Summarizer):
                     break
         output['predicted_text'] = self.vectorizer.decode_output(output['predicted_sequence'])
         return output
+    
+    def predict_from_distribution(self, text: str) -> str:
+        return self.predict_vectors_from_distribution(text, '')['predicted_text']
+    
+    def _softmax(x):
+        return np.exp(x) / np.sum(np.exp(x))
+        
+    def predict_vectors_from_distribution(self, input_text: str, target_text: str) -> Dict[str, Union[str, np.array]]:
+        text_preprocessed = self.preprocessor((input_text, target_text))
+        en_inputs, _ = self.vectorizer(text_preprocessed)
+        en_inputs = tf.expand_dims(en_inputs, 0)
+        start_end_seq = self.vectorizer.encode_output(
+            ' '.join([self.preprocessor.start_token, self.preprocessor.end_token]))
+        de_start_index, de_end_index = start_end_seq[:1], start_end_seq[-1:]
+        decoder_output = tf.expand_dims(de_start_index, 0)
+        output = {'preprocessed_text': text_preprocessed,
+                  'logits': [],
+                  'attention_weights': [],
+                  'predicted_sequence': []}
 
+        for _ in range(self.max_prediction_len):
+            enc_padding_mask, combined_mask, dec_padding_mask = create_masks(
+                en_inputs, decoder_output)
+            predictions, attention_weights = self.transformer(en_inputs,
+                                                              decoder_output,
+                                                              False,
+                                                              enc_padding_mask,
+                                                              combined_mask,
+                                                              dec_padding_mask)
+
+            predictions = predictions[:, -1:, :]
+            # pred_token_index = tf.cast(tf.argmax(predictions, axis=-1), tf.int32)
+            ### MINE ###
+            # predictions = _softmax(predictions.numpy())
+            # pred_token_index = np.random.choice(
+            #     np.argsort(predictions)[::-1],
+            #     size=1,
+            #     replace=False,
+            #     p=softmax(predictions[np.argsort(predictions)[::-1]])
+            #     )[0]
+            # pred_token_index = tf.cast(tf.Tensor(pred_token_index), tf.int32)
+            pred_token_index = tf.cast(tf.Tensor(0), tf.int32)
+            ### MINE ###
+            decoder_output = tf.concat([decoder_output, pred_token_index], axis=-1)
+            if pred_token_index != 0:
+                output['logits'].append(np.squeeze(predictions.numpy()))
+                output['attention_weights'] = attention_weights
+                output['predicted_sequence'].append(int(pred_token_index))
+                if pred_token_index == de_end_index:
+                    break
+        output['predicted_text'] = self.vectorizer.decode_output(output['predicted_sequence'])
+        return output
+    
     def save(self, out_path: str) -> None:
         if not os.path.exists(out_path):
             os.mkdir(out_path)
